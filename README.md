@@ -1,3 +1,7 @@
+This fork enables panic versions of common operations, namely: MustAdd, MustSub, MustMul, MustQuo. 
+
+This allows chaining, e.g. x.MustMul(percent).MustQuo(100)
+
 # decimal
 
 [![githubb]][github]
