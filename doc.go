@@ -1,7 +1,7 @@
 /*
-Package decimal implements immutable decimal floating-point numbers.
-It is specifically designed for transactional financial systems
-and adheres to the principles set by [ANSI X3.274-1996].
+Package decimal implements decimal floating-point numbers with correct rounding.
+It is specifically designed for transactional financial systems and adheres
+to the principles set by [ANSI X3.274-1996].
 
 # Internal Representation
 
@@ -65,18 +65,18 @@ Each arithmetic operation occurs in two steps:
     If no significant digits are lost during rounding, the inexact result is returned.
     If any significant digit is lost, an overflow error is returned.
 
-Step 1 improves performance by avoiding performance impact associated with [big.Int] arithmetic.
+Step 1 improves performance by avoiding the performance impact associated with [big.Int] arithmetic.
 It is expected that, in transactional financial systems, most arithmetic operations
 will compute an exact result during step 1.
 
 The following rules determine the significance of digits during step 2:
 
-  - [Decimal.Add], [Decimal.Sub], [Decimal.Mul], [Decimal.Quo], [Decimal.QuoRem], [Decimal.Inv],
+  - For [Decimal.Add], [Decimal.Sub], [Decimal.Mul], [Decimal.Quo], [Decimal.QuoRem], [Decimal.Inv],
     [Decimal.AddMul], [Decimal.AddQuo], [Decimal.SubMul], [Decimal.SubQuo], [Decimal.SubAbs],
-    [Decimal.PowInt]:
+    [Decimal.PowInt], [Sum], [Mean], [Prod]:
     All digits in the integer part are significant, while digits in the
     fractional part are considered insignificant.
-  - [Decimal.AddExact], [Decimal.SubExact], [Decimal.MulExact], [Decimal.QuoExact],
+  - For [Decimal.AddExact], [Decimal.SubExact], [Decimal.MulExact], [Decimal.QuoExact],
     [Decimal.AddMulExact], [Decimal.AddQuoExact], [Decimal.SubMulExact], [Decimal.SubQuoExact]:
     All digits in the integer part are significant. The significance of digits
     in the fractional part is determined by the scale argument, which is typically
@@ -91,37 +91,19 @@ If any significant digit is lost, an overflow error is returned.
 
 The following rules determine the significance of digits:
 
-  - [Decimal.Sqrt], [Decimal.Exp], [Decimal.Log]:
+  - For [Decimal.Sqrt], [Decimal.Pow], [Decimal.Exp], [Decimal.Log],
+    [Decimal.Log2], [Decimal.Log10], [Decimal.Expm1], [Decimal.Log1p]:
     All digits in the integer part are significant, while digits in the
     fractional part are considered insignificant.
 
-# Mathematical Context
-
-Unlike many other decimal libraries, this package does not provide
-an explicit mathematical [context].
-Instead, the [context] is implicit and can be approximately equated to
-the following settings:
-
-	| Attribute               | Value                                           |
-	| ----------------------- | ----------------------------------------------- |
-	| Precision               | 19                                              |
-	| Maximum Exponent (Emax) | 18                                              |
-	| Minimum Exponent (Emin) | -19                                             |
-	| Tiny Exponent (Etiny)   | -19                                             |
-	| Rounding Method         | Half To Even                                    |
-	| Enabled Traps           | Division by Zero, Invalid Operation, Overflow   |
-	| Disabled Traps          | Inexact, Clamped, Rounded, Subnormal, Underflow |
-
-The equality of Etiny and Emin implies that this package does not support
-subnormal numbers.
-
 # Rounding Methods
 
-For all operations the result is the one that would be obtained by computing
-the exact mathematical result with infinite precision and then rounding it
-to 19 digits using half-to-even rounding.
-This method ensures that rounding errors are evenly distributed between rounding up
-and down.
+For all operations, the result is the one that would be obtained by computing
+the exact result with infinite precision and then rounding it to 19 digits
+using half-to-even rounding.
+This method ensures that the result is as close as possible to the true
+mathematical value and that rounding errors are evenly distributed between
+rounding up and down.
 
 In addition to implicit rounding, the package provides several methods for
 explicit rounding:
@@ -148,9 +130,12 @@ Errors are returned in the following cases:
     Instead, they return an error.
 
   - Invalid Operation:
+    [Sum], [Mean] and [Prod] return an error if no arguments are provided.
     [Decimal.PowInt] returns an error if 0 is raised to a negative power.
-    [Decimal.Sqrt] return an error if the square root of a negative decimal is requested.
-    [Decimal.Log] returns an error when calculating the natural logarithm of a non-positive decimal.
+    [Decimal.Sqrt] returns an error if the square root of a negative decimal is requested.
+    [Decimal.Log], [Decimal.Log2], [Decimal.Log10] return an error when calculating a logarithm of a non-positive decimal.
+    [Decimal.Log1p] returns an error when calculating a logarithm of a decimal equal to or less than negative one.
+    [Decimal.Pow] returns an error if 0 is raised to a negative powere or a negative decimal is raised to a fractional power.
 
   - Overflow:
     Unlike standard integers, decimals do not "wrap around" when exceeding their maximum value.
@@ -167,9 +152,8 @@ Errors are not returned in the following cases:
 
 A. JSON
 
-The package integrates seamlessly with standard [encoding/json] through
-the implementation of [encoding.TextMarshaller] and [encoding.TextUnmarshaler]
-interfaces.
+The package integrates with standard [encoding/json] through
+the implementation of [json.Marshaler] and [json.Unmarshaler] interfaces.
 Below is an example structure:
 
 	type Object struct {
@@ -186,7 +170,21 @@ Below is an example OpenAPI schema:
 	  format: decimal
 	  pattern: '^(\-|\+)?((\d+(\.\d*)?)|(\.\d+))$'
 
-B. XML
+B. BSON
+
+The package integrates with [mongo-driver/bson] via the implementation of
+[v2/bson.ValueMarshaler] and [v2/bson.ValueUnmarshaler] interfaces.
+Below is an example structure:
+
+	type Record struct {
+	  Number decimal.Decimal `bson:"some_number"`
+	  // Other fields...
+	}
+
+This package marshals decimals as [Decimal128], ensuring the preservation of
+the exact numerical value.
+
+C. XML
 
 The package integrates with standard [encoding/xml] via the implementation of
 [encoding.TextMarshaller] and [encoding.TextUnmarshaler] interfaces.
@@ -207,7 +205,7 @@ using the following type:
 	  </xs:restriction>
 	</xs:simpleType>
 
-C. Protocol Buffers
+D. Protocol Buffers
 
 Protocol Buffers provide two formats to represent decimals.
 The first format represents decimals as [numerical strings].
@@ -232,7 +230,7 @@ Below is an example of a proto definition:
 	  int32 nanos = 2;
 	}
 
-D. SQL
+E. SQL
 
 The package integrates with the standard [database/sql] via the implementation
 of [sql.Scanner] and [driver.Valuer] interfaces.
@@ -265,6 +263,26 @@ Below are the reasons for these preferences:
     To prevent automatic rescaling, consider using VARCHAR(22), which accurately
     preserves the scale of decimals.
 
+# Mathematical Context
+
+Unlike many other decimal libraries, this package does not provide
+an explicit mathematical [context].
+Instead, the [context] is implicit and can be approximately equated to
+the following settings:
+
+	| Attribute               | Value                                           |
+	| ----------------------- | ----------------------------------------------- |
+	| Precision               | 19                                              |
+	| Maximum Exponent (Emax) | 18                                              |
+	| Minimum Exponent (Emin) | -19                                             |
+	| Tiny Exponent (Etiny)   | -19                                             |
+	| Rounding Method         | Half To Even                                    |
+	| Enabled Traps           | Division by Zero, Invalid Operation, Overflow   |
+	| Disabled Traps          | Inexact, Clamped, Rounded, Subnormal, Underflow |
+
+The equality of Etiny and Emin implies that this package does not support
+subnormal numbers.
+
 [Infinity]: https://en.wikipedia.org/wiki/Infinity#Computing
 [Subnormal numbers]: https://en.wikipedia.org/wiki/Subnormal_number
 [NaN]: https://en.wikipedia.org/wiki/NaN
@@ -275,5 +293,11 @@ Below are the reasons for these preferences:
 [context]: https://speleotrove.com/decimal/damodel.html
 [numerical strings]: https://github.com/googleapis/googleapis/blob/master/google/type/decimal.proto
 [a pair of integers]: https://github.com/googleapis/googleapis/blob/master/google/type/money.proto
+[json.Marshaler]: https://pkg.go.dev/encoding/json#Marshaler
+[json.Unmarshaler]: https://pkg.go.dev/encoding/json#Unmarshaler
+[mongo-driver/bson]: https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson
+[Decimal128]: https://github.com/mongodb/specifications/blob/master/source/bson-decimal128/decimal128.md
+[v2/bson.ValueMarshaler]: https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#ValueMarshaler
+[v2/bson.ValueUnmarshaler]: https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson#ValueUnmarshaler
 */
 package decimal

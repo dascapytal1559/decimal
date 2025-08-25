@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.1.36] - 2025-01-19
+
+### Added
+
+- Implemented `Decimal.AppendText`, `Decimal.AppendBinary`, `Decimal.Expm1`, `Decimal.Log1p`.
+
+## [0.1.35] - 2025-01-12
+
+### Added
+
+- Implemented `Decimal.UnmarshalJSON`, `Decimal.MarshalJSON`, `Decimal.UnmarshalBSONValue`, `Decimal.MarshalBSONValue`.
+
+## [0.1.34] - 2024-12-27
+
+### Added
+
+- Implemented `Mean`, `Decimal.Pow`, `Decimal.Log2`, `Decimal.Log10`.
+
+### !!! Breaking Change !!!
+
+Due to wrong behaviour of some database drivers, the following changes were made:
+
+- `Decimal.MarshalBinary` produces the same output as `Decimal.MarshalText`.
+- `Decimal.UnmarshalBinary` expects the same input as `Decimal.UnmarshalText`.
+
+All BCD encoding related code was removed.
+
 ## [0.1.33] - 2024-11-16
 
 ### Added
