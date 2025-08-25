@@ -37,3 +37,21 @@ func (d Decimal) MustQuo(e Decimal) Decimal {
 	}
 	return f
 }
+
+// MustLog is like [Log] but panics if computing error.
+func (d Decimal) MustLog(e Decimal) Decimal {
+	f, err := e.Log()
+	if err != nil {
+		panic(fmt.Sprintf("MustLog(%v) failed: %v", d, err))
+	}
+	return f
+}
+
+// MustFloat64 is like [Float64] but panics if computing error.
+func (d Decimal) MustFloat64() float64 {
+	f, ok := d.Float64()
+	if !ok {
+		panic(fmt.Sprintf("MustFloat64(%v) failed", d))
+	}
+	return f
+}
