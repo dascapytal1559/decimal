@@ -47,11 +47,10 @@ func (d Decimal) MustLog() Decimal {
 	return f
 }
 
-// MustFloat64 is like [Float64] but panics if computing error.
-func (d Decimal) MustFloat64() float64 {
-	f, ok := d.Float64()
-	if !ok {
-		panic(fmt.Sprintf("MustFloat64(%v) failed", d))
+func (d Decimal) MustPow(e Decimal) Decimal {
+	f, err := d.Pow(e)
+	if err != nil {
+		panic(fmt.Sprintf("MustPow(%v) failed: %v", d, err))
 	}
 	return f
 }
