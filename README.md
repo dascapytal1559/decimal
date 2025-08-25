@@ -1,4 +1,4 @@
-This fork enables panic versions of common operations for convenience, namely: MustAdd, MustSub, MustMul, MustQuo. Which allows:
+This fork enables panic versions of common operations for convenience, namely: MustAdd, MustSub, MustMul, MustQuo, MustLog, MustFloat64. Which allows:
 
 - chaining: `x.MustMul(percent).MustQuo(100)`
 - assigning in struct: `{ y: x.MustMul(100) }`
