@@ -39,8 +39,8 @@ func (d Decimal) MustQuo(e Decimal) Decimal {
 }
 
 // MustLog is like [Log] but panics if computing error.
-func (d Decimal) MustLog(e Decimal) Decimal {
-	f, err := e.Log()
+func (d Decimal) MustLog() Decimal {
+	f, err := d.Log()
 	if err != nil {
 		panic(fmt.Sprintf("MustLog(%v) failed: %v", d, err))
 	}
